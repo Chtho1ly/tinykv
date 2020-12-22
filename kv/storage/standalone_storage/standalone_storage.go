@@ -6,7 +6,6 @@ import (
 	"github.com/pingcap-incubator/tinykv/kv/storage"
 	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
 	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/raft_cmdpb"
 	"os"
 )
 
@@ -79,26 +78,14 @@ func (s *StandAloneStorage) Reader(ctx *kvrpcpb.Context) (storage.StorageReader,
 
 func (s *StandAloneStorage) Write(ctx *kvrpcpb.Context, batch []storage.Modify) error {
 	// Your Code Here (1).
-	var reqs []*raft_cmdpb.Request
 	for _, m := range batch {
 		switch m.Data.(type) {
 		case storage.Put:
 			put := m.Data.(storage.Put)
-			reqs = append(reqs, &raft_cmdpb.Request{
-				CmdType: raft_cmdpb.CmdType_Put,
-				Put: &raft_cmdpb.PutRequest{
-					Cf:    put.Cf,
-					Key:   put.Key,
-					Value: put.Value,
-				}})
+			engine_util.PutCF(s.db,put.Cf,put.Key,put.Value)
 		case storage.Delete:
 			delete := m.Data.(storage.Delete)
-			reqs = append(reqs, &raft_cmdpb.Request{
-				CmdType: raft_cmdpb.CmdType_Delete,
-				Delete: &raft_cmdpb.DeleteRequest{
-					Cf:  delete.Cf,
-					Key: delete.Key,
-				}})
+			engine_util.DeleteCF(s.db,delete.Cf,delete.Key)
 		}
 	}
 	return nil
